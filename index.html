@@ -3,567 +3,1498 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Malla Curricular Interactiva - Ingeniería Civil Informática</title>
+    <meta name="description" content="Malla curricular interactiva y constructor de horarios para Ingeniería Civil Informática UV (Plan 5125).">
+    <title>Malla Interactiva & Horarios — Ingeniería Civil Informática</title>
+    <!-- SheetJS para soporte adicional de archivos .xlsx / .xls -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
     <style>
         :root {
-            --bg-color: #1e1e2f;
-            --text-color: #ffffff;
+            --bg-canvas: #0b0d13;
+            --bg-surface: #121620;
+            --bg-elevated: #1a202e;
+            --bg-hover: #232b3d;
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --text-muted: #6b7280;
+            --border-subtle: rgba(255, 255, 255, 0.08);
+            --border-strong: rgba(255, 255, 255, 0.18);
+            --accent-primary: #3b82f6;
+            --accent-cursando: #f59e0b;
+            --accent-pasado: #10b981;
+            --accent-danger: #ef4444;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --font-mono: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            padding: 2rem;
+            font-family: var(--font-sans);
+            background-color: var(--bg-canvas);
+            color: var(--text-primary);
             margin: 0;
-            padding-bottom: 100px;
+            padding: 1.5rem;
+            padding-bottom: 110px;
+            line-height: 1.45;
+            overflow-x: hidden;
         }
 
-        h1 {
-            text-align: center;
+        /* Tipografía y Números Tabulares */
+        .tabular {
+            font-family: var(--font-mono);
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Cabecera Principal */
+        header.app-header {
+            max-width: 1600px;
+            margin: 0 auto 1.5rem auto;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 1rem;
+            border-bottom: 1px solid var(--border-subtle);
+            padding-bottom: 1rem;
+        }
+
+        .header-title h1 {
+            font-size: clamp(1.35rem, 2.5vw, 1.85rem);
+            margin: 0 0 0.35rem 0;
+            letter-spacing: -0.02em;
+        }
+
+        .header-title p {
+            margin: 0;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            max-width: 68ch;
+        }
+
+        .instruccion-movil { display: none; }
+
+        .header-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        /* Controles y Botones */
+        .btn, .input-search {
+            background-color: var(--bg-surface);
+            color: var(--text-primary);
+            border: 1px solid var(--border-strong);
+            padding: 0.55rem 0.9rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            min-height: 40px;
+            transition: background-color 0.15s ease, border-color 0.15s ease;
+        }
+
+        .btn {
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            user-select: none;
+        }
+
+        .btn:hover { background-color: var(--bg-hover); }
+        .btn:focus-visible, .input-search:focus-visible, select:focus-visible {
+            outline: 2px solid var(--accent-primary);
+            outline-offset: 2px;
+        }
+
+        .btn-primary {
+            background-color: var(--accent-primary);
+            border-color: var(--accent-primary);
+            color: #ffffff;
+            font-weight: 600;
+        }
+        .btn-primary:hover { background-color: #2563eb; }
+
+        .btn-danger {
+            color: #fca5a5;
+            border-color: rgba(239, 68, 68, 0.35);
+        }
+        .btn-danger:hover { background-color: rgba(239, 68, 68, 0.15); }
+
+        /* Sección Constructor de Horarios */
+        .panel-horario {
+            max-width: 1600px;
+            margin: 0 auto 2rem auto;
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
+            padding: 1.25rem;
+        }
+
+        .panel-horario-header {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
             margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .panel-horario-header h2 {
+            margin: 0;
+            font-size: 1.15rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .controles-archivo {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .file-label {
+            background-color: var(--accent-pasado);
+            color: #052e16;
+            font-weight: 700;
+            padding: 0.55rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            min-height: 40px;
+        }
+        .file-label:hover { filter: brightness(1.08); }
+
+        #input-excel { display: none; }
+
+        .estado-archivo {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+        }
+
+        /* Tarjetas de Selección de Sección */
+        .selectores-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(min(100%, 270px), 1fr));
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .selector-card {
+            background-color: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-left: 3px solid var(--accent-cursando);
+            border-radius: 6px;
+            padding: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.45rem;
+            min-width: 0;
+        }
+
+        .selector-card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 0.5rem;
+        }
+
+        .selector-codigo {
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: var(--accent-cursando);
+        }
+
+        .selector-nombre {
+            font-size: 0.88rem;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .selector-select {
+            width: 100%;
+            background-color: var(--bg-canvas);
+            color: var(--text-primary);
+            border: 1px solid var(--border-strong);
+            border-radius: 5px;
+            padding: 0.45rem 0.5rem;
+            font-size: 0.82rem;
+            min-height: 38px;
+        }
+
+        /* Alerta de Topes */
+        .alerta-tope {
+            background-color: rgba(239, 68, 68, 0.14);
+            border: 1px solid var(--accent-danger);
+            color: #fecaca;
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        /* Grilla Semanal Lunes a Viernes */
+        .grilla-semanal {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(185px, 1fr));
+            gap: 0.75rem;
+            overflow-x: auto;
+            padding-bottom: 0.25rem;
+        }
+
+        .columna-dia {
+            background-color: var(--bg-canvas);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 0.75rem;
+            min-height: 170px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.55rem;
+        }
+
+        .dia-titulo {
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text-secondary);
+            padding-bottom: 0.45rem;
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .bloque-clase {
+            background-color: var(--bg-elevated);
+            border: 1px solid var(--border-strong);
+            border-left: 4px solid var(--accent-primary);
+            border-radius: 6px;
+            padding: 0.6rem;
+            font-size: 0.78rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+        }
+
+        .bloque-clase.conflicto {
+            border-color: var(--accent-danger);
+            border-left-width: 4px;
+            background-color: rgba(239, 68, 68, 0.14);
+        }
+
+        .b-top {
+            display: flex;
+            justify-content: space-between;
+            font-weight: 700;
+            color: #93c5fd;
+        }
+
+        .bloque-clase.conflicto .b-top { color: #fca5a5; }
+        .b-nombre { font-weight: 600; color: var(--text-primary); }
+        .b-hora { color: #fde68a; font-weight: 600; font-size: 0.75rem; }
+        .b-meta { color: var(--text-secondary); font-size: 0.72rem; }
+
+        /* Leyenda de Categorías y Filtros */
+        .leyenda-bar {
+            max-width: 1600px;
+            margin: 0 auto 1rem auto;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .badge-cat {
+            font-size: 0.74rem;
+            padding: 0.25rem 0.6rem;
+            border-radius: 4px;
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            color: var(--text-secondary);
+        }
+
+        .dot-cat {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        /* Contenedor Principal de la Malla */
+        .malla-wrapper {
+            max-width: 1600px;
+            margin: 0 auto;
         }
 
         .malla {
             display: flex;
-            gap: 20px;
+            gap: 14px;
             overflow-x: auto;
-            padding-bottom: 20px;
-            padding-top: 15px;
-            align-items: flex-start; /* Evita que las columnas se estiren si una se cierra */
+            padding: 8px 4px 24px 4px;
+            align-items: flex-start;
         }
 
         .semestre-columna {
-            min-width: 230px;
+            min-width: 232px;
+            max-width: 232px;
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 0.65rem;
             display: flex;
             flex-direction: column;
-            background-color: rgba(0, 0, 0, 0.1);
-            border-radius: 12px;
-            padding: 10px;
+            flex-shrink: 0;
         }
 
-        /* --- NUEVO: ESTILOS DE LA CABECERA COLAPSABLE --- */
         .semestre-header {
-            background-color: #2a2a40;
-            padding: 12px;
-            border-radius: 8px;
+            width: 100%;
+            background-color: var(--bg-elevated);
+            color: var(--text-primary);
+            border: 1px solid var(--border-subtle);
+            padding: 0.65rem 0.75rem;
+            border-radius: 6px;
             cursor: pointer;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
-            transition: background-color 0.3s;
-            user-select: none;
-            -webkit-user-select: none;
+            margin-bottom: 0.65rem;
+            text-align: left;
+            font-family: inherit;
         }
 
-        .semestre-header:hover {
-            background-color: #3a3a55;
-        }
+        .semestre-header:hover { background-color: var(--bg-hover); }
 
         .semestre-titulo {
-            font-size: 1.1rem;
-            font-weight: bold;
+            font-size: 0.92rem;
+            font-weight: 700;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 0.45rem;
         }
 
         .icono-toggle {
-            font-size: 0.8rem;
-            transition: transform 0.3s ease;
+            font-size: 0.75rem;
+            transition: transform 0.2s ease;
+            display: inline-block;
         }
 
         .semestre-progreso {
-            font-size: 0.85rem;
-            background-color: #444;
-            padding: 3px 8px;
-            border-radius: 12px;
-            font-weight: bold;
-            transition: background-color 0.3s;
+            font-size: 0.75rem;
+            background-color: var(--bg-canvas);
+            color: var(--text-secondary);
+            padding: 2px 7px;
+            border-radius: 4px;
+            border: 1px solid var(--border-subtle);
+            font-weight: 600;
         }
 
         .semestre-progreso.completado {
-            background-color: #4CAF50;
-            color: white;
-            box-shadow: 0 0 8px rgba(76, 175, 80, 0.6);
+            background-color: rgba(16, 185, 129, 0.2);
+            border-color: var(--accent-pasado);
+            color: #6ee7b7;
         }
 
-        /* Clases para el estado colapsado */
-        .semestre-columna.colapsado .icono-toggle {
-            transform: rotate(-90deg); /* Gira la flechita */
-        }
-        
-        .semestre-columna.colapsado .ramos-contenedor {
-            display: none; /* Esconde los ramos */
-        }
-
-        .semestre-columna.colapsado {
-            margin-bottom: 0;
-        }
+        .semestre-columna.colapsado .icono-toggle { transform: rotate(-90deg); }
+        .semestre-columna.colapsado .ramos-contenedor { display: none; }
+        .semestre-columna.colapsado .semestre-header { margin-bottom: 0; }
 
         .ramos-contenedor {
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 10px;
         }
-        /* ----------------------------------------------- */
 
+        /* Tarjeta de Ramo */
         .ramo {
-            background-color: #333;
-            border-radius: 8px;
-            padding: 15px;
+            background-color: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-left: 4px solid var(--cat-color, #60a5fa);
+            border-radius: 6px;
+            padding: 0.75rem;
             cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            transition: all 0.3s ease;
             position: relative;
-            color: #333;
-            font-weight: 500;
             display: flex;
             flex-direction: column;
+            gap: 0.4rem;
+            transition: transform 0.15s ease, opacity 0.15s ease, border-color 0.15s ease;
+            user-select: none;
             -webkit-user-select: none;
-            user-select: none; 
+        }
+
+        .ramo:hover {
+            background-color: var(--bg-hover);
+            border-color: var(--border-strong);
         }
 
         .ramo-header {
             display: flex;
             justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 5px;
+            align-items: center;
+            gap: 0.4rem;
         }
 
         .ramo-codigo {
-            font-size: 0.8rem;
-            font-weight: bold;
-            opacity: 0.7;
+            font-size: 0.76rem;
+            font-weight: 700;
+            color: var(--text-secondary);
         }
 
         .ramo-creditos {
-            background-color: rgba(0,0,0,0.2);
-            font-size: 0.7rem;
-            padding: 2px 6px;
-            border-radius: 12px;
-            font-weight: bold;
+            font-size: 0.72rem;
+            font-weight: 700;
+            background-color: var(--bg-canvas);
+            color: var(--text-primary);
+            padding: 1px 6px;
+            border-radius: 4px;
+            border: 1px solid var(--border-subtle);
         }
 
         .ramo-nombre {
-            font-size: 0.95rem;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: var(--text-primary);
             line-height: 1.3;
-            flex-grow: 1;
+        }
+
+        .ramo-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.4rem;
+            margin-top: 0.2rem;
+            flex-wrap: wrap;
         }
 
         .ramo-reqs {
-            font-size: 0.75rem;
-            margin-top: 10px;
-            font-weight: 700;
-            background-color: rgba(255, 255, 255, 0.4);
-            padding: 4px 8px;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            background-color: var(--bg-canvas);
+            padding: 2px 6px;
             border-radius: 4px;
-            align-self: flex-start;
-            border: 1px solid rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border-subtle);
         }
 
-        /* Estados */
-        .ramo.pasado {
-            opacity: 0.6;
-            filter: grayscale(40%);
-            border: 2px dashed #666;
-        }
-        .ramo.pasado::after {
-            content: '✅ PASADO';
-            position: absolute;
-            top: -12px;
-            right: -10px;
-            background-color: #4CAF50;
-            color: white;
+        .btn-estado-card {
+            background-color: var(--bg-canvas);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-strong);
+            border-radius: 4px;
             font-size: 0.7rem;
-            font-weight: bold;
-            padding: 4px 8px;
-            border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
-            z-index: 5;
+            font-weight: 600;
+            padding: 3px 7px;
+            cursor: pointer;
+            min-height: 26px;
+            margin-left: auto;
+        }
+        .btn-estado-card:hover {
+            color: var(--text-primary);
+            border-color: var(--accent-primary);
+        }
+
+        .aviso-req {
+            font-size: 0.7rem;
+            color: #fca5a5;
+            background-color: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            padding: 2px 6px;
+            border-radius: 4px;
+            display: none;
+        }
+
+        /* Estados del Ramo: Pasado y Cursando */
+        .ramo.pasado {
+            background-color: rgba(16, 185, 129, 0.08);
+            border-color: rgba(16, 185, 129, 0.35);
+        }
+        .ramo.pasado .btn-estado-card {
+            background-color: var(--accent-pasado);
+            color: #052e16;
+            border-color: var(--accent-pasado);
         }
 
         .ramo.cursando {
-            outline: 3px solid #FF9800;
-            box-shadow: 0 0 12px rgba(255, 152, 0, 0.4);
+            background-color: rgba(245, 158, 11, 0.12);
+            border-color: var(--accent-cursando);
+            box-shadow: 0 0 0 1px var(--accent-cursando);
         }
-        .ramo.cursando::after {
-            content: '⏳ CURSANDO';
-            position: absolute;
-            top: -12px;
-            right: -10px;
-            background-color: #FF9800;
-            color: white;
-            font-size: 0.7rem;
-            font-weight: bold;
-            padding: 4px 8px;
-            border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        .ramo.cursando .btn-estado-card {
+            background-color: var(--accent-cursando);
+            color: #451a03;
+            border-color: var(--accent-cursando);
+        }
+
+        /* Estados de Conexión al Hacer Clic Izquierdo */
+        .malla.activa .ramo { opacity: 0.25; }
+        .malla.activa .ramo.seleccionado {
+            opacity: 1;
+            outline: 2px solid #ffffff;
             z-index: 5;
         }
-
-        /* Interacciones */
-        .malla.activa .ramo { opacity: 0.3; }
-        .malla.activa .ramo.seleccionado {
-            opacity: 1; transform: scale(1.05);
-            outline: 3px solid #ffffff; box-shadow: 0 0 15px rgba(255,255,255,0.5); z-index: 10;
+        .malla.activa .ramo.es-requisito {
+            opacity: 1;
+            outline: 2px solid var(--accent-cursando);
         }
         .malla.activa .ramo.abre {
-            opacity: 1; outline: 3px solid #4CAF50; animation: latido 1.5s infinite;
+            opacity: 1;
+            outline: 2px solid var(--accent-pasado);
         }
 
-        .instruccion { text-align: center; margin-bottom: 20px; color: #aaa; line-height: 1.6; }
-        .instruccion b { color: #fff; }
-        .instruccion-movil { display: none; }
-
-        /* Panel Créditos */
-        #panel-creditos {
+        /* Barra Inferior de Métricas */
+        .barra-metricas {
             position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background-color: #FF9800;
-            color: #fff;
-            padding: 15px 25px;
-            border-radius: 12px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            box-shadow: 0 6px 15px rgba(0,0,0,0.5);
-            border: 2px solid #fff;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: rgba(18, 22, 32, 0.95);
+            backdrop-filter: blur(8px);
+            border-top: 1px solid var(--border-strong);
+            padding: 0.75rem 1.5rem;
             z-index: 100;
             display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
             align-items: center;
-            gap: 10px;
+            gap: 1rem;
         }
 
-        @keyframes latido {
-            0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+        .metricas-grupo {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.25rem;
+            align-items: center;
         }
+
+        .metrica-item {
+            display: flex;
+            align-items: baseline;
+            gap: 0.4rem;
+            font-size: 0.85rem;
+        }
+
+        .metrica-label { color: var(--text-secondary); }
+        .metrica-valor {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .metrica-valor.destacado { color: var(--accent-cursando); }
+        .metrica-valor.verde { color: var(--accent-pasado); }
 
         @media (max-width: 768px) {
-            body {
-                padding: 1rem;
-                padding-bottom: 90px;
-            }
-            .malla {
-                flex-direction: column; 
-                align-items: center;
-                gap: 20px;
-            }
-            .semestre-columna {
-                width: 100%;
-                max-width: 350px;
-                box-sizing: border-box;
-            }
-            .instruccion {
-                font-size: 0.9rem;
-            }
-            #panel-creditos {
-                width: calc(100% - 40px);
-                bottom: 10px;
-                right: 50%;
-                transform: translateX(50%); 
-                justify-content: center;
-                font-size: 1rem;
-                padding: 12px;
-            }
+            body { padding: 1rem; padding-bottom: 130px; }
             .instruccion-pc { display: none; }
             .instruccion-movil { display: block; }
+            .malla {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .semestre-columna {
+                min-width: 100%;
+                max-width: 100%;
+            }
+            .grilla-semanal {
+                grid-template-columns: 1fr;
+            }
+            .columna-dia { min-height: auto; }
+            .btn-estado-card {
+                min-height: 36px;
+                padding: 6px 10px;
+                font-size: 0.76rem;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                transition: none !important;
+                animation: none !important;
+            }
         }
     </style>
 </head>
 <body>
 
-    <h1>Malla Curricular Interactiva</h1>
-    
-    <div class="instruccion">
-        <div class="instruccion-pc">
-            Haz <b>clic en el título de un semestre</b> para ocultarlo o mostrarlo.<br>
-            Haz <b>clic izquierdo</b> en un ramo para ver conexiones | <b>clic derecho</b> para cambiar estado.<br>
+    <header class="app-header">
+        <div class="header-title">
+            <h1>Malla Interactiva & Constructor de Horarios</h1>
+            <p class="instruccion-pc">
+                <b>PC:</b> Clic izquierdo en un ramo para ver qué requisitos pide (ámbar) y qué ramos abre (verde). Clic derecho o botón del ramo para cambiar su estado (Normal ➔ Cursando ➔ Pasado).
+            </p>
+            <p class="instruccion-movil">
+                <b>Móvil:</b> Toca el nombre de un ramo para ver conexiones. Usa el botón de estado en cada tarjeta (o mantén presionado) para alternar entre Normal, Cursando y Pasado.
+            </p>
         </div>
-        
-        <div class="instruccion-movil">
-            <b>Toca un semestre</b> para colapsarlo.<br>
-            <b>Toca un ramo</b> para ver conexiones | <b>Mantén presionado</b> para cambiar estado.<br>
+        <div class="header-actions">
+            <input type="search" id="buscador-ramo" class="input-search" placeholder="Buscar código o ramo..." aria-label="Buscar código o asignatura">
+            <button type="button" class="btn" id="btn-colapsar-aprobados">Ocultar semestres completos</button>
+            <button type="button" class="btn btn-danger" id="btn-reiniciar">Reiniciar progreso</button>
         </div>
-    </div>
-    
-    <div id="malla-contenedor" class="malla"></div>
+    </header>
 
-    <div id="panel-creditos">
-        ⏳ Créditos en Curso: <span id="total-creditos">0</span>
-    </div>
+    <main>
+        <!-- CONSTRUCTOR DE HORARIO SEMANAL -->
+        <section class="panel-horario" aria-labelledby="titulo-horario">
+            <div class="panel-horario-header">
+                <h2 id="titulo-horario">📅 Constructor de Horario Semanal</h2>
+                <div class="controles-archivo">
+                    <label for="input-excel" class="file-label">
+                        📂 Cargar Oferta Académica (.csv / .xlsx)
+                    </label>
+                    <input type="file" id="input-excel" accept=".csv,.xlsx,.xls">
+                    <button type="button" class="btn" id="btn-borrar-csv" style="display:none;">Quitar archivo</button>
+                    <span id="estado-carga" class="estado-archivo tabular">Sin archivo cargado. Marca ramos como "⏳ Cursando" para armar tu horario.</span>
+                </div>
+            </div>
+
+            <div id="alerta-topes" class="alerta-tope" role="alert"></div>
+
+            <!-- Selectores dinámicos de sección para ramos en curso -->
+            <div id="selectores-secciones" class="selectores-grid"></div>
+
+            <!-- Grilla Lunes a Viernes -->
+            <div class="grilla-semanal">
+                <div class="columna-dia"><div class="dia-titulo"><span>Lunes</span><span id="count-Lunes" class="tabular"></span></div><div id="grid-Lunes"></div></div>
+                <div class="columna-dia"><div class="dia-titulo"><span>Martes</span><span id="count-Martes" class="tabular"></span></div><div id="grid-Martes"></div></div>
+                <div class="columna-dia"><div class="dia-titulo"><span>Miércoles</span><span id="count-Miercoles" class="tabular"></span></div><div id="grid-Miercoles"></div></div>
+                <div class="columna-dia"><div class="dia-titulo"><span>Jueves</span><span id="count-Jueves" class="tabular"></span></div><div id="grid-Jueves"></div></div>
+                <div class="columna-dia"><div class="dia-titulo"><span>Viernes</span><span id="count-Viernes" class="tabular"></span></div><div id="grid-Viernes"></div></div>
+            </div>
+        </section>
+
+        <!-- LEYENDA DE ÁREAS -->
+        <section class="leyenda-bar" id="leyenda-categorias" aria-label="Áreas curriculares"></section>
+
+        <!-- MALLA CURRICULAR -->
+        <section class="malla-wrapper" aria-label="Malla curricular por semestres">
+            <div id="malla-contenedor" class="malla"></div>
+        </section>
+    </main>
+
+    <!-- BARRA FLOTANTE DE MÉTRICAS -->
+    <footer class="barra-metricas">
+        <div class="metricas-grupo">
+            <div class="metrica-item">
+                <span class="metrica-label">⏳ Créditos Cursando:</span>
+                <span id="total-creditos" class="metrica-valor destacado tabular">0</span>
+            </div>
+            <div class="metrica-item">
+                <span class="metrica-label">✅ Créditos Aprobados:</span>
+                <span id="creditos-aprobados" class="metrica-valor verde tabular">0 / 352</span>
+            </div>
+            <div class="metrica-item">
+                <span class="metrica-label">📊 Avance Carrera:</span>
+                <span id="porcentaje-avance" class="metrica-valor tabular">0% (0/66 ramos)</span>
+            </div>
+        </div>
+        <div style="font-size: 0.78rem; color: var(--text-secondary);">
+            Guardado local automático en este navegador
+        </div>
+    </footer>
 
     <script>
+        // 1. DATOS OFICIALES PLAN 5125 (Verificados contra malla oficial UV)
         const ramosData = [
-          // Semestre 1
-          { "semestre": 1, "codigo": "MAT 111", "nombre": "Fundamentos de Matematicas", "categoria": "Ciencias Básicas", "requisitos": [], "creditos": 8 },
-          { "semestre": 1, "codigo": "CFG 111", "nombre": "Desarrollo Personal", "categoria": "Ciencias Sociales y Humanidades", "requisitos": [], "creditos": 2 },
-          { "semestre": 1, "codigo": "ING 111", "nombre": "Desafíos de Ingeniería", "categoria": "Integración de Lineas Curriculares", "requisitos": [], "creditos": 6 },
-          { "semestre": 1, "codigo": "PRO 111", "nombre": "Fundamentos de Programación", "categoria": "Ciencias de la Computación", "requisitos": [], "creditos": 5 },
-          { "semestre": 1, "codigo": "QUI 121", "nombre": "Química para Ingenieria", "categoria": "Ciencias Básicas", "requisitos": [], "creditos": 5 },
-          // Semestre 2
-          { "semestre": 2, "codigo": "MAT 121", "nombre": "Cálculo Diferencial", "categoria": "Ciencias Básicas", "requisitos": ["MAT 111"], "creditos": 6 },
-          { "semestre": 2, "codigo": "MAT 122", "nombre": "Álgebra", "categoria": "Ciencias Básicas", "requisitos": ["MAT 111"], "creditos": 8 },
-          { "semestre": 2, "codigo": "ING 121", "nombre": "Ingeniería, Innovación y Emprendimiento", "categoria": "Negocios y Proyectos", "requisitos": ["ING 111"], "creditos": 6 },
-          { "semestre": 2, "codigo": "PRO 121", "nombre": "Programación", "categoria": "Ciencias de la Computación", "requisitos": ["PRO 111"], "creditos": 5 },
-          { "semestre": 2, "codigo": "FIS 111", "nombre": "Fundamentos de Física", "categoria": "Ciencias Básicas", "requisitos": [], "creditos": 6 },
-          // Semestre 3
-          { "semestre": 3, "codigo": "MAT 211", "nombre": "Cálculo Integral y Series", "categoria": "Ciencias Básicas", "requisitos": ["MAT 121"], "creditos": 6 },
-          { "semestre": 3, "codigo": "MAT 212", "nombre": "Álgebra Lineal", "categoria": "Ciencias Básicas", "requisitos": ["MAT 122"], "creditos": 6 },
-          { "semestre": 3, "codigo": "FIS 211", "nombre": "Física Mecánica", "categoria": "Ciencias Básicas", "requisitos": ["MAT 121", "FIS 111"], "creditos": 6 },
-          { "semestre": 3, "codigo": "CIN 211", "nombre": "Programación Avanzada", "categoria": "Ciencias de la Computación", "requisitos": ["PRO 121"], "creditos": 6 },
-          { "semestre": 3, "codigo": "CIN 212", "nombre": "Hardware Digital", "categoria": "Tecnología de Información, Comunicaciones y Ciberseguridad", "requisitos": ["PRO 111"], "creditos": 4 },
-          { "semestre": 3, "codigo": "CIN 213", "nombre": "Inglés Básico", "categoria": "Ciencias Sociales y Humanidades", "requisitos": ["CFG 111"], "creditos": 2 }, 
-          // Semestre 4
-          { "semestre": 4, "codigo": "MAT 221", "nombre": "Cálculo en Varias Variables", "categoria": "Ciencias Básicas", "requisitos": ["MAT 211"], "creditos": 6 },
-          { "semestre": 4, "codigo": "MAT 222", "nombre": "Ecuaciones Diferenciales Ordinarias", "categoria": "Ciencias Básicas", "requisitos": ["MAT 211", "MAT 212"], "creditos": 6 },
-          { "semestre": 4, "codigo": "FIS 221", "nombre": "Física Calor y Onda", "categoria": "Ciencias Básicas", "requisitos": ["FIS 211", "MAT 211"], "creditos": 6 },
-          { "semestre": 4, "codigo": "CIN 221", "nombre": "Redes de Computadores", "categoria": "Tecnología de Información, Comunicaciones y Ciberseguridad", "requisitos": ["PRO 121", "CIN 212"], "creditos": 4 },
-          { "semestre": 4, "codigo": "CIN 222", "nombre": "Matemáticas Discretas", "categoria": "Ciencias de la Computación", "requisitos": ["MAT 111", "PRO 111"], "creditos": 4 },
-          { "semestre": 4, "codigo": "CIN 223", "nombre": "Inglés Elemental", "categoria": "Ciencias Sociales y Humanidades", "requisitos": ["CIN 213"], "creditos": 4 },
-          // Semestre 5
-          { "semestre": 5, "codigo": "FIS 311", "nombre": "Física Electromagnetismo", "categoria": "Ciencias Básicas", "requisitos": ["FIS 211", "MAT 211"], "creditos": 6 },
-          { "semestre": 5, "codigo": "CIN 311", "nombre": "Estructuras de Datos", "categoria": "Ciencias de la Computación", "requisitos": ["CIN 211", "CIN 212"], "creditos": 4 },
-          { "semestre": 5, "codigo": "CIN 312", "nombre": "Arquitectura de Computadores", "categoria": "Tecnología de Información, Comunicaciones y Ciberseguridad", "requisitos": ["CIN 212"], "creditos": 4 },
-          { "semestre": 5, "codigo": "CIN 313", "nombre": "Modelos de Datos", "categoria": "Ciencia de Datos", "requisitos": ["CIN 211"], "creditos": 6 },
-          { "semestre": 5, "codigo": "CIN 314", "nombre": "Fundamentos de Ingeniería de SW", "categoria": "Ingeniería de Software", "requisitos": ["CIN 211"], "creditos": 4 },
-          { "semestre": 5, "codigo": "CIN 315", "nombre": "Laboratorio de Redes de Computadores", "categoria": "Tecnología de Información, Comunicaciones y Ciberseguridad", "requisitos": ["CIN 211"], "creditos": 4 },
-          { "semestre": 5, "codigo": "CIN 316", "nombre": "Inglés Intermedio", "categoria": "Ciencias Sociales y Humanidades", "requisitos": ["CIN 223"], "creditos": 4 },
-          // Semestre 6
-          { "semestre": 6, "codigo": "CIN 321", "nombre": "Análisis y Diseño de Algoritmos", "categoria": "Ciencias de la Computación", "requisitos": ["MAT 121", "CIN 311"], "creditos": 4 },
-          { "semestre": 6, "codigo": "CIN 322", "nombre": "Sistemas Operativos", "categoria": "Tecnología de Información, Comunicaciones y Ciberseguridad", "requisitos": ["PRO 121", "CIN 312"], "creditos": 4 },
-          { "semestre": 6, "codigo": "CIN 323", "nombre": "Aplicaciones Web", "categoria": "Integración de Lineas Curriculares", "requisitos": ["CIN 211", "CIN 313"], "creditos": 4 },
-          { "semestre": 6, "codigo": "CIN 324", "nombre": "Ingeniería de Requisitos", "categoria": "Ingeniería de Software", "requisitos": ["CIN 314"], "creditos": 4 },
-          { "semestre": 6, "codigo": "CIN 325", "nombre": "Experiencia del Usuario", "categoria": "Ingeniería de Software", "requisitos": ["CIN 313"], "creditos": 4 },
-          { "semestre": 6, "codigo": "CIN 326", "nombre": "Inglés Avanzado", "categoria": "Ciencias Sociales y Humanidades", "requisitos": ["CIN 316"], "creditos": 4 },
-          { "semestre": 6, "codigo": "CIN 327", "nombre": "TIPE I", "categoria": "Integración de Lineas Curriculares", "requisitos": [], "creditos": 4 },
-          // Semestre 7
-          { "semestre": 7, "codigo": "CIN 411", "nombre": "Estadística Computacional", "categoria": "Ciencias de la Computación", "requisitos": ["MAT 121", "CIN 321"], "creditos": 4 },
-          { "semestre": 7, "codigo": "CIN 412", "nombre": "Lenguajes y Autómatas", "categoria": "Ciencias de la Computación", "requisitos": ["CIN 311"], "creditos": 4 },
-          { "semestre": 7, "codigo": "CIN 413", "nombre": "Arquitectura de Software", "categoria": "Ingeniería de Software", "requisitos": ["CIN 324"], "creditos": 4 },
-          { "semestre": 7, "codigo": "CIN 414", "nombre": "Sistemas de Información", "categoria": "Ingeniería de Software", "requisitos": ["CIN 314"], "creditos": 4 },
-          { "semestre": 7, "codigo": "CIN 415", "nombre": "Ciencia de Datos", "categoria": "Ciencia de Datos", "requisitos": ["CIN 313"], "creditos": 6 },
-          { "semestre": 7, "codigo": "CIN 416", "nombre": "Ética", "categoria": "Ciencias Sociales y Humanidades", "requisitos": ["4to Sem Apro"], "creditos": 4 },
-          { "semestre": 7, "codigo": "CIN 417", "nombre": "TIPE II", "categoria": "Integración de Lineas Curriculares", "requisitos": ["CIN 327"], "creditos": 4 },
-          // Semestre 8
-          { "semestre": 8, "codigo": "CIN 421", "nombre": "Pruebas de Sistemas", "categoria": "Integración de Lineas Curriculares", "requisitos": ["CIN 314", "CIN 322", "CIN 323"], "creditos": 4 },
-          { "semestre": 8, "codigo": "CIN 422", "nombre": "Redes Avanzadas de Computadores", "categoria": "Tecnología de Información, Comunicaciones y Ciberseguridad", "requisitos": ["CIN 315", "CIN 322"], "creditos": 4 },
-          { "semestre": 8, "codigo": "CIN 423", "nombre": "Lenguajes de Programación", "categoria": "Ciencias de la Computación", "requisitos": ["CIN 412"], "creditos": 4 },
-          { "semestre": 8, "codigo": "CIN 424", "nombre": "Minería de Datos", "categoria": "Ciencia de Datos", "requisitos": ["CIN 415"], "creditos": 4 },
-          { "semestre": 8, "codigo": "CIN 425", "nombre": "Taller de Integración Tecnológica", "categoria": "Integración de Lineas Curriculares", "requisitos": ["6to Sem Apro"], "creditos": 6 },
-          { "semestre": 8, "codigo": "CIN 426", "nombre": "Administración General", "categoria": "Negocios y Proyectos", "requisitos": ["6to Sem Apro"], "creditos": 3 },
-          { "semestre": 8, "codigo": "CIN 427", "nombre": "Contabilidad y Finanzas", "categoria": "Negocios y Proyectos", "requisitos": ["MAT 111", "CIN 416"], "creditos": 4 },
-          // Semestre 9
-          { "semestre": 9, "codigo": "CIN 511", "nombre": "Gestión de Proyectos Informáticos", "categoria": "Ingeniería de Software", "requisitos": ["CIN 413"], "creditos": 5 },
-          { "semestre": 9, "codigo": "CIN 512", "nombre": "Fundamentos de Inteligencia Artificial", "categoria": "Ciencias de la Computación", "requisitos": ["CIN 321", "CIN 411"], "creditos": 4 },
-          { "semestre": 9, "codigo": "CIN 513", "nombre": "Simulación", "categoria": "Tecnología de Información, Comunicaciones y Ciberseguridad", "requisitos": ["CIN 211", "CIN 411"], "creditos": 6 },
-          { "semestre": 9, "codigo": "CIN 514", "nombre": "Ciberseguridad", "categoria": "Tecnología de Información, Comunicaciones y Ciberseguridad", "requisitos": ["CIN 314", "CIN 322", "CIN 323"], "creditos": 4 },
-          { "semestre": 9, "codigo": "CIN 515", "nombre": "Economía", "categoria": "Negocios y Proyectos", "requisitos": ["CIN 426"], "creditos": 6 },
-          { "semestre": 9, "codigo": "CIN 516", "nombre": "Electivo Profesional I", "categoria": "Electivos Profesionales", "requisitos": ["6to Sem Apro"], "creditos": 5 },
-          // Semestre 10
-          { "semestre": 10, "codigo": "CIN 521", "nombre": "Evaluación de Proyectos", "categoria": "Negocios y Proyectos", "requisitos": ["CIN 426", "CIN 427"], "creditos": 5 },
-          { "semestre": 10, "codigo": "CIN 522", "nombre": "Inteligencia de Negocios", "categoria": "Ciencia de Datos", "requisitos": ["CIN 424"], "creditos": 5 },
-          { "semestre": 10, "codigo": "CIN 523", "nombre": "Proyecto de Título", "categoria": "Seminario de Título", "requisitos": ["8vo Sem Apro"], "creditos": 10 },
-          { "semestre": 10, "codigo": "CIN 524", "nombre": "Electivo Profesional II", "categoria": "Electivos Profesionales", "requisitos": ["7mo Sem Apro"], "creditos": 5 },
-          { "semestre": 10, "codigo": "CIN 525", "nombre": "Electivo Profesional III", "categoria": "Electivos Profesionales", "requisitos": ["7mo Sem Apro"], "creditos": 5 },
-          // Semestre 11
-          { "semestre": 11, "codigo": "CIN 611", "nombre": "Seminario de Título", "categoria": "Seminario de Título", "requisitos": ["CIN 523"], "creditos": 25 },
-          { "semestre": 11, "codigo": "CIN 612", "nombre": "Electivo Profesional IV", "categoria": "Electivos Profesionales", "requisitos": ["8vo Sem Apro"], "creditos": 5 },
-          // Semestre 12 (Prácticas Profesionales)
-          { "semestre": 12, "codigo": "CIN 227", "nombre": "Práctica Profesional I", "categoria": "Integración de Lineas Curriculares", "requisitos": ["4to Sem Apro"], "creditos": 10 },
-          { "semestre": 12, "codigo": "CIN 428", "nombre": "Práctica Profesional II", "categoria": "Integración de Lineas Curriculares", "requisitos": ["8vo Sem Apro", "CIN 227"], "creditos": 12 }
+            // Semestre 1 (29 C)
+            { semestre: 1, codigo: "MAT 111", nombre: "Fundamentos de Matemáticas", categoria: "Ciencias Básicas", requisitos: [], creditos: 6 },
+            { semestre: 1, codigo: "CFG 111", nombre: "Desarrollo Personal", categoria: "Ciencias Sociales y Humanidades", requisitos: [], creditos: 5 },
+            { semestre: 1, codigo: "ING 111", nombre: "Desafíos de Ingeniería", categoria: "Integración de Líneas Curriculares", requisitos: [], creditos: 6 },
+            { semestre: 1, codigo: "PRO 111", nombre: "Fundamentos de Programación", categoria: "Ciencias de la Computación", requisitos: [], creditos: 6 },
+            { semestre: 1, codigo: "QUI 121", nombre: "Química para Ingeniería", categoria: "Ciencias Básicas", requisitos: [], creditos: 6 },
+
+            // Semestre 2 (31 C)
+            { semestre: 2, codigo: "MAT 121", nombre: "Cálculo Diferencial", categoria: "Ciencias Básicas", requisitos: ["MAT 111"], creditos: 6 },
+            { semestre: 2, codigo: "MAT 122", nombre: "Álgebra", categoria: "Ciencias Básicas", requisitos: ["MAT 111"], creditos: 8 },
+            { semestre: 2, codigo: "ING 121", nombre: "Ingeniería, Innovación y Emprendimiento", categoria: "Negocios y Proyectos", requisitos: ["ING 111"], creditos: 5 },
+            { semestre: 2, codigo: "PRO 121", nombre: "Programación", categoria: "Ciencias de la Computación", requisitos: ["PRO 111"], creditos: 6 },
+            { semestre: 2, codigo: "FIS 111", nombre: "Fundamentos de Física", categoria: "Ciencias Básicas", requisitos: [], creditos: 6 },
+
+            // Semestre 3 (30 C)
+            { semestre: 3, codigo: "MAT 211", nombre: "Cálculo Integral y Series", categoria: "Ciencias Básicas", requisitos: ["MAT 121"], creditos: 6 },
+            { semestre: 3, codigo: "MAT 212", nombre: "Álgebra Lineal", categoria: "Ciencias Básicas", requisitos: ["MAT 122"], creditos: 6 },
+            { semestre: 3, codigo: "FIS 211", nombre: "Física Mecánica", categoria: "Ciencias Básicas", requisitos: ["MAT 121", "FIS 111"], creditos: 6 },
+            { semestre: 3, codigo: "CIN 211", nombre: "Programación Avanzada", categoria: "Ciencias de la Computación", requisitos: ["PRO 121"], creditos: 6 },
+            { semestre: 3, codigo: "CIN 212", nombre: "Hardware Digital", categoria: "TIC y Ciberseguridad", requisitos: ["PRO 111"], creditos: 4 },
+            { semestre: 3, codigo: "CIN 213", nombre: "Inglés Básico", categoria: "Ciencias Sociales y Humanidades", requisitos: ["CFG 111"], creditos: 2 },
+
+            // Semestre 4 (30 C)
+            { semestre: 4, codigo: "MAT 221", nombre: "Cálculo en Varias Variables", categoria: "Ciencias Básicas", requisitos: ["MAT 211"], creditos: 6 },
+            { semestre: 4, codigo: "MAT 222", nombre: "Ecuaciones Diferenciales Ordinarias", categoria: "Ciencias Básicas", requisitos: ["MAT 211", "MAT 212"], creditos: 6 },
+            { semestre: 4, codigo: "FIS 221", nombre: "Física Calor y Onda", categoria: "Ciencias Básicas", requisitos: ["FIS 211", "MAT 211"], creditos: 6 },
+            { semestre: 4, codigo: "CIN 221", nombre: "Redes de Computadores", categoria: "TIC y Ciberseguridad", requisitos: ["PRO 121", "CIN 212"], creditos: 4 },
+            { semestre: 4, codigo: "CIN 222", nombre: "Matemáticas Discretas", categoria: "Ciencias de la Computación", requisitos: ["MAT 111", "PRO 111"], creditos: 4 },
+            { semestre: 4, codigo: "CIN 223", nombre: "Inglés Elemental", categoria: "Ciencias Sociales y Humanidades", requisitos: ["CIN 213"], creditos: 4 },
+
+            // Semestre 5 (32 C)
+            { semestre: 5, codigo: "FIS 311", nombre: "Física Electromagnetismo", categoria: "Ciencias Básicas", requisitos: ["FIS 211", "MAT 211"], creditos: 6 },
+            { semestre: 5, codigo: "CIN 311", nombre: "Estructuras de Datos", categoria: "Ciencias de la Computación", requisitos: ["CIN 211", "CIN 212"], creditos: 4 },
+            { semestre: 5, codigo: "CIN 312", nombre: "Arquitectura de Computadores", categoria: "TIC y Ciberseguridad", requisitos: ["CIN 212"], creditos: 5 },
+            { semestre: 5, codigo: "CIN 313", nombre: "Modelos de Base de Datos", categoria: "Ciencia de Datos", requisitos: ["CIN 211"], creditos: 6 },
+            { semestre: 5, codigo: "CIN 314", nombre: "Fundamentos de Ingeniería de SW", categoria: "Ingeniería de Software", requisitos: ["CIN 211"], creditos: 4 },
+            { semestre: 5, codigo: "CIN 315", nombre: "Laboratorio de Redes de Computadores", categoria: "TIC y Ciberseguridad", requisitos: ["CIN 211"], creditos: 4 },
+            { semestre: 5, codigo: "CIN 316", nombre: "Inglés Intermedio", categoria: "Ciencias Sociales y Humanidades", requisitos: ["CIN 223"], creditos: 3 },
+
+            // Semestre 6 (28 C)
+            { semestre: 6, codigo: "CIN 321", nombre: "Análisis y Diseño de Algoritmos", categoria: "Ciencias de la Computación", requisitos: ["MAT 121", "CIN 311"], creditos: 4 },
+            { semestre: 6, codigo: "CIN 322", nombre: "Sistemas Operativos", categoria: "TIC y Ciberseguridad", requisitos: ["PRO 121", "CIN 312"], creditos: 5 },
+            { semestre: 6, codigo: "CIN 323", nombre: "Aplicaciones Web", categoria: "Integración de Líneas Curriculares", requisitos: ["CIN 211", "CIN 313"], creditos: 5 },
+            { semestre: 6, codigo: "CIN 324", nombre: "Ingeniería de Requisitos", categoria: "Ingeniería de Software", requisitos: ["CIN 314"], creditos: 4 },
+            { semestre: 6, codigo: "CIN 325", nombre: "Experiencia del Usuario", categoria: "Ingeniería de Software", requisitos: ["CIN 313"], creditos: 4 },
+            { semestre: 6, codigo: "CIN 326", nombre: "Inglés Avanzado", categoria: "Ciencias Sociales y Humanidades", requisitos: ["CIN 316"], creditos: 4 },
+            { semestre: 6, codigo: "CIN 327", nombre: "TIPE I", categoria: "Ciencias Sociales y Humanidades", requisitos: ["4to Sem Apro"], creditos: 2 },
+
+            // Semestre 7 (30 C)
+            { semestre: 7, codigo: "CIN 411", nombre: "Estadística Computacional", categoria: "Ciencias de la Computación", requisitos: ["MAT 221", "CIN 321"], creditos: 5 },
+            { semestre: 7, codigo: "CIN 412", nombre: "Lenguajes y Autómatas", categoria: "Ciencias de la Computación", requisitos: ["CIN 311"], creditos: 5 },
+            { semestre: 7, codigo: "CIN 413", nombre: "Arquitectura de Software", categoria: "Ingeniería de Software", requisitos: ["CIN 324"], creditos: 4 },
+            { semestre: 7, codigo: "CIN 414", nombre: "Sistemas de Información", categoria: "Ingeniería de Software", requisitos: ["CIN 314"], creditos: 4 },
+            { semestre: 7, codigo: "CIN 415", nombre: "Administración de Base de Datos", categoria: "Ciencia de Datos", requisitos: ["CIN 323"], creditos: 4 },
+            { semestre: 7, codigo: "CIN 416", nombre: "Ética", categoria: "Ciencias Sociales y Humanidades", requisitos: ["4to Sem Apro"], creditos: 4 },
+            { semestre: 7, codigo: "CIN 417", nombre: "TIPE II", categoria: "Ciencias Sociales y Humanidades", requisitos: ["CIN 327"], creditos: 4 },
+
+            // Semestre 8 (30 C)
+            { semestre: 8, codigo: "CIN 421", nombre: "Pruebas de Sistemas", categoria: "Integración de Líneas Curriculares", requisitos: ["CIN 314", "CIN 322", "CIN 323"], creditos: 4 },
+            { semestre: 8, codigo: "CIN 422", nombre: "Redes Avanzadas de Computadores", categoria: "TIC y Ciberseguridad", requisitos: ["CIN 315", "CIN 322"], creditos: 4 },
+            { semestre: 8, codigo: "CIN 423", nombre: "Lenguajes de Programación", categoria: "Ciencias de la Computación", requisitos: ["CIN 412"], creditos: 5 },
+            { semestre: 8, codigo: "CIN 424", nombre: "Ciencia de Datos", categoria: "Ciencia de Datos", requisitos: ["CIN 415"], creditos: 4 },
+            { semestre: 8, codigo: "CIN 425", nombre: "Taller de Integración Tecnológica", categoria: "Integración de Líneas Curriculares", requisitos: ["6to Sem Apro"], creditos: 6 },
+            { semestre: 8, codigo: "CIN 426", nombre: "Administración General", categoria: "Negocios y Proyectos", requisitos: ["6to Sem Apro"], creditos: 3 },
+            { semestre: 8, codigo: "CIN 427", nombre: "Contabilidad y Finanzas", categoria: "Negocios y Proyectos", requisitos: ["MAT 111", "CIN 416"], creditos: 4 },
+
+            // Semestre 9 (30 C)
+            { semestre: 9, codigo: "CIN 511", nombre: "Gestión de Proyectos Informáticos", categoria: "Ingeniería de Software", requisitos: ["CIN 413"], creditos: 5 },
+            { semestre: 9, codigo: "CIN 512", nombre: "Fundamentos de Inteligencia Artificial", categoria: "Ciencias de la Computación", requisitos: ["CIN 321", "CIN 411"], creditos: 5 },
+            { semestre: 9, codigo: "CIN 513", nombre: "Simulación", categoria: "TIC y Ciberseguridad", requisitos: ["CIN 211", "CIN 411"], creditos: 5 },
+            { semestre: 9, codigo: "CIN 514", nombre: "Ciberseguridad", categoria: "TIC y Ciberseguridad", requisitos: ["CIN 314", "CIN 322", "CIN 323"], creditos: 5 },
+            { semestre: 9, codigo: "CIN 515", nombre: "Economía", categoria: "Negocios y Proyectos", requisitos: ["CIN 426"], creditos: 5 },
+            { semestre: 9, codigo: "CIN 516", nombre: "Electivo Profesional I", categoria: "Electivos Profesionales", requisitos: ["6to Sem Apro"], creditos: 5 },
+
+            // Semestre 10 (30 C)
+            { semestre: 10, codigo: "CIN 521", nombre: "Evaluación de Proyectos", categoria: "Negocios y Proyectos", requisitos: ["CIN 426", "CIN 427"], creditos: 5 },
+            { semestre: 10, codigo: "CIN 522", nombre: "Inteligencia de Negocios", categoria: "Ciencia de Datos", requisitos: ["CIN 424"], creditos: 5 },
+            { semestre: 10, codigo: "CIN 523", nombre: "Proyecto de Título", categoria: "Seminario de Título", requisitos: ["8vo Sem Apro"], creditos: 10 },
+            { semestre: 10, codigo: "CIN 524", nombre: "Electivo Profesional II", categoria: "Electivos Profesionales", requisitos: ["7mo Sem Apro"], creditos: 5 },
+            { semestre: 10, codigo: "CIN 525", nombre: "Electivo Profesional III", categoria: "Electivos Profesionales", requisitos: ["7mo Sem Apro"], creditos: 5 },
+
+            // Semestre 11 (30 C)
+            { semestre: 11, codigo: "CIN 611", nombre: "Seminario de Título", categoria: "Seminario de Título", requisitos: ["CIN 523"], creditos: 25 },
+            { semestre: 11, codigo: "CIN 612", nombre: "Electivo Profesional IV", categoria: "Electivos Profesionales", requisitos: ["8vo Sem Apro"], creditos: 5 },
+
+            // Columna 12: Prácticas Profesionales (22 C)
+            { semestre: 12, codigo: "CIN 227", nombre: "Práctica Profesional I", categoria: "Integración de Líneas Curriculares", requisitos: ["4to Sem Apro"], creditos: 10 },
+            { semestre: 12, codigo: "CIN 428", nombre: "Práctica Profesional II", categoria: "Integración de Líneas Curriculares", requisitos: ["8vo Sem Apro", "CIN 227"], creditos: 12 }
         ];
 
-        const limpiarCodigo = (codigo) => codigo.replace(/\s+/g, '').toUpperCase();
-
         const coloresPorCategoria = {
-            "Ciencias Básicas": "#b3e5a6",
-            "Ciencias Sociales y Humanidades": "#80ffea",
-            "Ciencias de la Computación": "#d4c4fb",
-            "Negocios y Proyectos": "#ffe5a6",
-            "Tecnología de Información, Comunicaciones y Ciberseguridad": "#ffc4c4",
-            "Integración de Lineas Curriculares": "#bce3ff",
-            "Ciencia de Datos": "#ffb673",
-            "Ingeniería de Software": "#a6c4ff",
-            "Seminario de Título": "#ffe933",     
-            "Electivos Profesionales": "#8fb359"  
+            "Ciencias Básicas": "#4ade80",
+            "Ciencias Sociales y Humanidades": "#2dd4bf",
+            "Ciencias de la Computación": "#a78bfa",
+            "Ciencia de Datos": "#fb923c",
+            "TIC y Ciberseguridad": "#f87171",
+            "Ingeniería de Software": "#60a5fa",
+            "Negocios y Proyectos": "#fcd34d",
+            "Integración de Líneas Curriculares": "#38bdf8",
+            "Seminario de Título": "#facc15",
+            "Electivos Profesionales": "#a3e635"
         };
 
-        const contenedor = document.getElementById('malla-contenedor');
-        let ramosDOM = {}; 
+        const limpiarCodigo = (str) => String(str || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+        const normalizarTexto = (str) => String(str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 
-        let ramosAprobados = JSON.parse(localStorage.getItem('ramosAprobados')) || [];
-        let ramosCursando = JSON.parse(localStorage.getItem('ramosCursando')) || [];
+        // 2. ESTADO PERSISTENTE EN LOCALSTORAGE
+        const leerStorage = (key, def) => {
+            try {
+                const raw = localStorage.getItem(key);
+                return raw ? JSON.parse(raw) : def;
+            } catch (e) {
+                return def;
+            }
+        };
 
-        function actualizarContadorCreditos() {
-            let total = 0;
-            ramosData.forEach(ramo => {
-                const codigoLimpio = limpiarCodigo(ramo.codigo);
-                if (ramosCursando.includes(codigoLimpio)) {
-                    total += (ramo.creditos || 0);
-                }
-            });
-            document.getElementById('total-creditos').innerText = total;
+        const guardarStorage = (key, val) => {
+            try {
+                localStorage.setItem(key, JSON.stringify(val));
+            } catch (e) {
+                console.warn("No se pudo guardar en localStorage:", e);
+            }
+        };
+
+        let ramosAprobados = leerStorage('ramosAprobados', []);
+        let ramosCursando = leerStorage('ramosCursando', []);
+        let semestresColapsados = leerStorage('semestresColapsados', []);
+        let seccionesElegidas = leerStorage('seccionesElegidas', {});
+        // Mapa indexado por código limpio: { "MAT111": [ { seccion: "1", docente: "...", bloques: [...] } ] }
+        let ofertaHoraria = leerStorage('ofertaHorariaUV', {});
+        let nombreArchivoGuardado = localStorage.getItem('nombreArchivoUV') || '';
+
+        const contenedorMalla = document.getElementById('malla-contenedor');
+        const ramosDOM = {};
+
+        // 3. RENDERIZADO DE LEYENDA Y MALLA
+        function renderizarLeyenda() {
+            const cont = document.getElementById('leyenda-categorias');
+            cont.innerHTML = Object.entries(coloresPorCategoria).map(([cat, color]) => `
+                <span class="badge-cat">
+                    <span class="dot-cat" style="background-color:${color}"></span>
+                    ${cat}
+                </span>
+            `).join('');
         }
 
-        // --- NUEVA LÓGICA: Calcular progreso de cada semestre ---
-        function actualizarProgresoSemestres() {
+        function construirMalla() {
+            contenedorMalla.innerHTML = '';
+            const maxSemestre = Math.max(...ramosData.map(r => r.semestre));
+
+            for (let i = 1; i <= maxSemestre; i++) {
+                const col = document.createElement('div');
+                col.className = 'semestre-columna' + (semestresColapsados.includes(i) ? ' colapsado' : '');
+                col.id = `semestre-${i}`;
+
+                const titulo = (i === 12) ? 'Prácticas' : `Semestre ${i}`;
+                col.innerHTML = `
+                    <button type="button" class="semestre-header" data-sem="${i}" aria-expanded="${!semestresColapsados.includes(i)}">
+                        <span class="semestre-titulo">
+                            <span class="icono-toggle">▼</span> ${titulo}
+                        </span>
+                        <span class="semestre-progreso tabular" id="progreso-${i}">0/0</span>
+                    </button>
+                    <div class="ramos-contenedor" id="ramos-semestre-${i}"></div>
+                `;
+                contenedorMalla.appendChild(col);
+            }
+
+            ramosData.forEach(ramo => {
+                const cod = limpiarCodigo(ramo.codigo);
+                const card = document.createElement('article');
+                card.className = 'ramo';
+                card.id = `ramo-${cod}`;
+                card.dataset.codigo = cod;
+                card.style.setProperty('--cat-color', coloresPorCategoria[ramo.categoria] || '#60a5fa');
+
+                const reqTexto = ramo.requisitos.length > 0 ? `Req: ${ramo.requisitos.join(', ')}` : 'Sin requisitos';
+
+                card.innerHTML = `
+                    <div class="ramo-header">
+                        <span class="ramo-codigo tabular">${ramo.codigo}</span>
+                        <span class="ramo-creditos tabular">${ramo.creditos} C</span>
+                    </div>
+                    <div class="ramo-nombre">${ramo.nombre}</div>
+                    <div class="aviso-req" id="aviso-${cod}">⚠️ Falta requisito por aprobar</div>
+                    <div class="ramo-footer">
+                        <span class="ramo-reqs">${reqTexto}</span>
+                        <button type="button" class="btn-estado-card" data-action="toggle-estado" data-codigo="${cod}" aria-label="Cambiar estado de ${ramo.nombre}">
+                            Normal
+                        </button>
+                    </div>
+                `;
+
+                // Soporte Long-Press en pantallas táctiles
+                let touchTimer = null;
+                card.addEventListener('touchstart', () => {
+                    touchTimer = setTimeout(() => {
+                        ciclarEstadoRamo(cod);
+                        if (navigator.vibrate) navigator.vibrate(45);
+                    }, 550);
+                }, { passive: true });
+                card.addEventListener('touchend', () => clearTimeout(touchTimer));
+                card.addEventListener('touchmove', () => clearTimeout(touchTimer));
+
+                document.getElementById(`ramos-semestre-${ramo.semestre}`).appendChild(card);
+                ramosDOM[cod] = card;
+            });
+
+            sincronizarUI();
+        }
+
+        // 4. LÓGICA DE ESTADOS, VALIDACIÓN DE REQUISITOS Y MÉTRICAS
+        function semestreCompletoHasta(n) {
+            return ramosData
+                .filter(r => r.semestre <= n)
+                .every(r => ramosAprobados.includes(limpiarCodigo(r.codigo)));
+        }
+
+        function cumpleRequisitos(ramo) {
+            if (!ramo.requisitos || ramo.requisitos.length === 0) return true;
+            return ramo.requisitos.every(req => {
+                const matchSem = req.match(/(\d+)/);
+                if (req.toLowerCase().includes('sem') && matchSem) {
+                    return semestreCompletoHasta(parseInt(matchSem[1], 10));
+                }
+                return ramosAprobados.includes(limpiarCodigo(req));
+            });
+        }
+
+        function ciclarEstadoRamo(cod) {
+            if (ramosCursando.includes(cod)) {
+                ramosCursando = ramosCursando.filter(c => c !== cod);
+                if (!ramosAprobados.includes(cod)) ramosAprobados.push(cod);
+            } else if (ramosAprobados.includes(cod)) {
+                ramosAprobados = ramosAprobados.filter(c => c !== cod);
+            } else {
+                ramosCursando.push(cod);
+            }
+
+            guardarStorage('ramosCursando', ramosCursando);
+            guardarStorage('ramosAprobados', ramosAprobados);
+            sincronizarUI();
+        }
+
+        function sincronizarUI() {
+            let credCursando = 0;
+            let credAprobados = 0;
+            const totalCreditosCarrera = ramosData.reduce((acc, r) => acc + r.creditos, 0);
+
+            ramosData.forEach(ramo => {
+                const cod = limpiarCodigo(ramo.codigo);
+                const card = ramosDOM[cod];
+                if (!card) return;
+
+                const btn = card.querySelector('.btn-estado-card');
+                const aviso = document.getElementById(`aviso-${cod}`);
+                card.classList.remove('pasado', 'cursando');
+
+                if (ramosAprobados.includes(cod)) {
+                    card.classList.add('pasado');
+                    btn.textContent = '✅ Pasado';
+                    aviso.style.display = 'none';
+                    credAprobados += ramo.creditos;
+                } else if (ramosCursando.includes(cod)) {
+                    card.classList.add('cursando');
+                    btn.textContent = '⏳ Cursando';
+                    credCursando += ramo.creditos;
+                    aviso.style.display = cumpleRequisitos(ramo) ? 'none' : 'block';
+                } else {
+                    btn.textContent = 'Normal';
+                    aviso.style.display = 'none';
+                }
+            });
+
+            // Actualizar contadores por semestre
             const maxSemestre = Math.max(...ramosData.map(r => r.semestre));
             for (let i = 1; i <= maxSemestre; i++) {
-                const ramosDelSemestre = ramosData.filter(r => r.semestre === i);
-                const totalRamos = ramosDelSemestre.length;
-                
-                if (totalRamos === 0) continue;
+                const delSem = ramosData.filter(r => r.semestre === i);
+                const pasados = delSem.filter(r => ramosAprobados.includes(limpiarCodigo(r.codigo))).length;
+                const badge = document.getElementById(`progreso-${i}`);
+                if (badge) {
+                    badge.textContent = `${pasados}/${delSem.length}`;
+                    badge.classList.toggle('completado', pasados === delSem.length && delSem.length > 0);
+                }
+            }
 
-                const aprobados = ramosDelSemestre.filter(r => {
-                    return ramosAprobados.includes(limpiarCodigo(r.codigo));
-                }).length;
+            // Actualizar barra inferior
+            const pct = Math.round((ramosAprobados.length / ramosData.length) * 100);
+            document.getElementById('total-creditos').textContent = credCursando;
+            document.getElementById('creditos-aprobados').textContent = `${credAprobados} / ${totalCreditosCarrera}`;
+            document.getElementById('porcentaje-avance').textContent = `${pct}% (${ramosAprobados.length}/${ramosData.length} ramos)`;
 
-                const progresoBadge = document.getElementById(`progreso-${i}`);
-                if (progresoBadge) {
-                    progresoBadge.innerText = `${aprobados}/${totalRamos}`;
-                    if (aprobados === totalRamos) {
-                        progresoBadge.classList.add('completado');
+            renderizarPanelHorario();
+        }
+
+        function resaltarConexiones(codSeleccionado) {
+            const ramoActual = ramosData.find(r => limpiarCodigo(r.codigo) === codSeleccionado);
+            if (!ramoActual) return;
+
+            contenedorMalla.classList.add('activa');
+            Object.values(ramosDOM).forEach(el => el.classList.remove('seleccionado', 'abre', 'es-requisito'));
+
+            if (ramosDOM[codSeleccionado]) {
+                ramosDOM[codSeleccionado].classList.add('seleccionado');
+            }
+
+            // 1. Marcar requisitos directos hacia atrás
+            ramoActual.requisitos.forEach(req => {
+                const reqLimpio = limpiarCodigo(req);
+                if (ramosDOM[reqLimpio]) ramosDOM[reqLimpio].classList.add('es-requisito');
+            });
+
+            // 2. Marcar ramos que abre hacia adelante
+            ramosData.forEach(r => {
+                const reqsLimpios = r.requisitos.map(limpiarCodigo);
+                if (reqsLimpios.includes(codSeleccionado)) {
+                    const codAbre = limpiarCodigo(r.codigo);
+                    if (ramosDOM[codAbre]) ramosDOM[codAbre].classList.add('abre');
+                }
+            });
+        }
+
+        // 5. PARSER ROBUSTO DE CSV / EXCEL PARA OFERTA ACADÉMICA UV
+        function parsearTextoCSV(texto) {
+            const lineas = texto.split(/\r?\n/).filter(l => l.trim().length > 0);
+            if (lineas.length === 0) return [];
+
+            // Detectar si el delimitador es ';' o ',' contando fuera de comillas en las primeras 10 líneas
+            let puntosYComa = 0;
+            let comas = 0;
+            lineas.slice(0, 10).forEach(l => {
+                let enComillas = false;
+                for (let ch of l) {
+                    if (ch === '"') enComillas = !enComillas;
+                    else if (!enComillas && ch === ';') puntosYComa++;
+                    else if (!enComillas && ch === ',') comas++;
+                }
+            });
+            const sep = puntosYComa >= comas ? ';' : ',';
+
+            return lineas.map(linea => {
+                const celdas = [];
+                let actual = '';
+                let enComillas = false;
+                for (let i = 0; i < linea.length; i++) {
+                    const ch = linea[i];
+                    if (ch === '"') {
+                        if (enComillas && linea[i + 1] === '"') {
+                            actual += '"';
+                            i++;
+                        } else {
+                            enComillas = !enComillas;
+                        }
+                    } else if (ch === sep && !enComillas) {
+                        celdas.push(actual.trim());
+                        actual = '';
                     } else {
-                        progresoBadge.classList.remove('completado');
+                        actual += ch;
                     }
                 }
+                celdas.push(actual.trim());
+                return celdas;
+            });
+        }
+
+        function normalizarDia(prefijo) {
+            const p = normalizarTexto(prefijo).slice(0, 2);
+            if (p === 'lu') return 'Lunes';
+            if (p === 'ma') return 'Martes';
+            if (p === 'mi') return 'Miercoles';
+            if (p === 'ju') return 'Jueves';
+            if (p === 'vi') return 'Viernes';
+            return '';
+        }
+
+        function aMinutos(horaStr) {
+            const [h, m] = String(horaStr).split(':').map(Number);
+            return (h || 0) * 60 + (m || 0);
+        }
+
+        function extraerOfertaDesdeMatriz(matriz) {
+            const mapa = {};
+            const regexCodigo = /\b([A-Z]{3})\s*[-]?\s*(\d{3})\b/i;
+            const regexBloque = /\b(Lu|Ma|Mi|Mié|Ju|Vi)[a-záéíóú]*\s*(\d{1,2}:\d{2})\s*[-–a]\s*(\d{1,2}:\d{2})/i;
+
+            // Buscar fila de cabecera real que tenga TANTO "Asignatura" COMO "Sección" en celdas distintas
+            let colAsignatura = -1;
+            let colSeccion = -1;
+            let colDocente = -1;
+            let filaInicio = 0;
+
+            for (let i = 0; i < Math.min(20, matriz.length); i++) {
+                const fila = matriz[i].map(c => normalizarTexto(c));
+                const idxAsig = fila.findIndex(c => c.includes('asignatura') || c.includes('ramo'));
+                const idxSec = fila.findIndex(c => c === 'seccion' || c.startsWith('secc'));
+                if (idxAsig !== -1 && idxSec !== -1 && idxAsig !== idxSec) {
+                    colAsignatura = idxAsig;
+                    colSeccion = idxSec;
+                    colDocente = fila.findIndex(c => c.includes('docente') || c.includes('profesor'));
+                    filaInicio = i + 1;
+                    break;
+                }
             }
+
+            for (let r = filaInicio; r < matriz.length; r++) {
+                const fila = matriz[r];
+                if (!Array.isArray(fila) || fila.length < 2) continue;
+
+                // Identificar celda de asignatura
+                let idxAsigActual = colAsignatura;
+                let textoAsig = idxAsigActual >= 0 ? String(fila[idxAsigActual] || '').trim() : '';
+
+                if (!regexCodigo.test(textoAsig)) {
+                    idxAsigActual = fila.findIndex(celda => regexCodigo.test(String(celda || '')));
+                    if (idxAsigActual === -1) continue;
+                    textoAsig = String(fila[idxAsigActual]).trim();
+                }
+
+                const matchCod = textoAsig.match(regexCodigo);
+                if (!matchCod) continue;
+                const codLimpio = (matchCod[1] + matchCod[2]).toUpperCase();
+
+                // Ignorar coordinación sin horario (Sección 100) si dice explícitamente Coordinación
+                const esCoordinacion = normalizarTexto(textoAsig).includes('coordinacion');
+
+                const idxSecActual = colSeccion >= 0 ? colSeccion : idxAsigActual + 1;
+                const idxDocActual = colDocente >= 0 ? colDocente : idxSecActual + 1;
+
+                const seccion = String(fila[idxSecActual] || '1').trim();
+                const docente = String(fila[idxDocActual] || 'Por definir').trim();
+
+                // Escanear todas las celdas posteriores buscando bloques Día/Hora y su Sala contigua
+                const bloques = [];
+                for (let c = idxSecActual + 1; c < fila.length; c++) {
+                    const valorCelda = String(fila[c] || '').trim();
+                    const mHora = valorCelda.match(regexBloque);
+                    if (mHora) {
+                        const dia = normalizarDia(mHora[1]);
+                        const inicio = mHora[2].padStart(5, '0');
+                        const fin = mHora[3].padStart(5, '0');
+
+                        // Revisar si la celda inmediatamente siguiente es la Sala
+                        let sala = '';
+                        if (c + 1 < fila.length) {
+                            const sigCelda = String(fila[c + 1] || '').trim();
+                            if (sigCelda && sigCelda !== '-' && !regexBloque.test(sigCelda)) {
+                                sala = sigCelda;
+                            }
+                        }
+
+                        if (dia) {
+                            bloques.push({
+                                dia,
+                                inicio,
+                                fin,
+                                horarioTexto: `${mHora[1]} ${inicio} - ${fin}`,
+                                sala
+                            });
+                        }
+                    }
+                }
+
+                // Si es fila de coordinación (ej. Sec 100) y no tiene bloques de horario, no ensuciar el selector
+                if ((esCoordinacion || seccion === '100') && bloques.length === 0) {
+                    continue;
+                }
+
+                if (!mapa[codLimpio]) mapa[codLimpio] = [];
+                const existente = mapa[codLimpio].find(s => s.seccion === seccion);
+                if (existente) {
+                    bloques.forEach(b => {
+                        if (!existente.bloques.some(eb => eb.dia === b.dia && eb.inicio === b.inicio)) {
+                            existente.bloques.push(b);
+                        }
+                    });
+                } else {
+                    mapa[codLimpio].push({ seccion, docente, bloques });
+                }
+            }
+
+            return mapa;
         }
 
-        // Función para contraer/expandir columnas
-        function toggleSemestre(num) {
-            const columna = document.getElementById(`semestre-${num}`);
-            columna.classList.toggle('colapsado');
-        }
+        // 6. RENDERIZADO DEL PANEL DE HORARIO Y DETECTOR DE TOPES
+        function renderizarPanelHorario() {
+            const contSelectores = document.getElementById('selectores-secciones');
+            const alertaTopes = document.getElementById('alerta-topes');
+            const btnBorrarCsv = document.getElementById('btn-borrar-csv');
+            const estadoCarga = document.getElementById('estado-carga');
 
-        const maxSemestre = Math.max(...ramosData.map(r => r.semestre));
-
-        // Generar las columnas con la nueva cabecera y contenedor interno
-        for (let i = 1; i <= maxSemestre; i++) {
-            const columna = document.createElement('div');
-            columna.className = 'semestre-columna';
-            columna.id = `semestre-${i}`;
-            
-            const tituloTexto = (i === 12) ? 'Prácticas' : `Semestre ${i}`;
-            
-            columna.innerHTML = `
-                <div class="semestre-header" onclick="toggleSemestre(${i})">
-                    <div class="semestre-titulo">
-                        <span class="icono-toggle">▼</span> ${tituloTexto}
-                    </div>
-                    <div class="semestre-progreso" id="progreso-${i}">0/0</div>
-                </div>
-                <div class="ramos-contenedor" id="ramos-semestre-${i}"></div>
-            `;
-            
-            contenedor.appendChild(columna);
-        }
-
-        // Lógica de estados actualizada para incluir el conteo de semestres
-        function cambiarEstadoRamo(tarjeta, codigoLimpio) {
-            if (tarjeta.classList.contains('cursando')) {
-                tarjeta.classList.remove('cursando');
-                tarjeta.classList.add('pasado');
-                ramosCursando = ramosCursando.filter(id => id !== codigoLimpio);
-                if (!ramosAprobados.includes(codigoLimpio)) ramosAprobados.push(codigoLimpio);
-            } else if (tarjeta.classList.contains('pasado')) {
-                tarjeta.classList.remove('pasado');
-                ramosAprobados = ramosAprobados.filter(id => id !== codigoLimpio);
+            const totalRamosEnOferta = Object.keys(ofertaHoraria).length;
+            if (totalRamosEnOferta > 0) {
+                estadoCarga.textContent = `✅ Oferta activa: ${nombreArchivoGuardado || 'Guardada en memoria'} (${totalRamosEnOferta} asignaturas con secciones)`;
+                btnBorrarCsv.style.display = 'inline-flex';
             } else {
-                tarjeta.classList.add('cursando');
-                if (!ramosCursando.includes(codigoLimpio)) ramosCursando.push(codigoLimpio);
-            }
-            
-            localStorage.setItem('ramosCursando', JSON.stringify(ramosCursando));
-            localStorage.setItem('ramosAprobados', JSON.stringify(ramosAprobados));
-            
-            actualizarContadorCreditos();
-            actualizarProgresoSemestres(); // Se llama aquí para actualizar la pastilla visual
-        }
-
-        ramosData.forEach(ramo => {
-            const codigoLimpio = limpiarCodigo(ramo.codigo);
-            
-            const tarjeta = document.createElement('div');
-            tarjeta.className = 'ramo';
-            tarjeta.id = `ramo-${codigoLimpio}`;
-            tarjeta.style.backgroundColor = coloresPorCategoria[ramo.categoria] || "#ffffff";
-            
-            let requisitosHTML = "";
-            if (ramo.requisitos && ramo.requisitos.length > 0) {
-                const reqsTexto = ramo.requisitos.join(', ');
-                requisitosHTML = `<div class="ramo-reqs">Req: ${reqsTexto}</div>`;
-            }
-            
-            tarjeta.innerHTML = `
-                <div class="ramo-header">
-                    <div class="ramo-codigo">${ramo.codigo}</div>
-                    <div class="ramo-creditos">${ramo.creditos} C</div>
-                </div>
-                <div class="ramo-nombre">${ramo.nombre}</div>
-                ${requisitosHTML}
-            `;
-
-            if (ramosAprobados.includes(codigoLimpio)) {
-                tarjeta.classList.add('pasado');
-            } else if (ramosCursando.includes(codigoLimpio)) {
-                tarjeta.classList.add('cursando');
+                estadoCarga.textContent = 'Sin archivo cargado. Sube tu CSV/Excel de oferta académica para elegir secciones.';
+                btnBorrarCsv.style.display = 'none';
             }
 
-            tarjeta.addEventListener('click', (e) => {
-                e.stopPropagation(); 
-                resaltarConexiones(codigoLimpio);
+            contSelectores.innerHTML = '';
+            ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes'].forEach(d => {
+                document.getElementById(`grid-${d}`).innerHTML = '';
+                document.getElementById(`count-${d}`).textContent = '';
             });
+            alertaTopes.style.display = 'none';
 
-            tarjeta.addEventListener('contextmenu', (e) => {
-                e.preventDefault(); 
-                cambiarEstadoRamo(tarjeta, codigoLimpio);
-            });
+            if (ramosCursando.length === 0) {
+                contSelectores.innerHTML = `
+                    <div style="grid-column: 1 / -1; color: var(--text-secondary); font-size: 0.85rem;">
+                        No tienes ramos marcados como <b>⏳ Cursando</b>. Marca los ramos que tomarás este semestre en la malla inferior para elegir sus secciones aquí.
+                    </div>
+                `;
+                return;
+            }
 
-            let touchTimer;
-            tarjeta.addEventListener('touchstart', (e) => {
-                touchTimer = setTimeout(() => {
-                    cambiarEstadoRamo(tarjeta, codigoLimpio);
-                    if (navigator.vibrate) navigator.vibrate(50);
-                }, 600);
-            }, {passive: true});
+            const bloquesActivosPorDia = { Lunes: [], Martes: [], Miercoles: [], Jueves: [], Viernes: [] };
 
-            tarjeta.addEventListener('touchend', () => clearTimeout(touchTimer));
-            tarjeta.addEventListener('touchmove', () => clearTimeout(touchTimer));
+            ramosCursando.forEach(codCursando => {
+                const ramoObj = ramosData.find(r => limpiarCodigo(r.codigo) === codCursando);
+                if (!ramoObj) return;
 
-            // Agregamos las tarjetas dentro del contenedor de su semestre respectivo
-            document.getElementById(`ramos-semestre-${ramo.semestre}`).appendChild(tarjeta);
-            ramosDOM[codigoLimpio] = tarjeta; 
-        });
+                const seccionesRamo = ofertaHoraria[codCursando] || [];
+                const card = document.createElement('div');
+                card.className = 'selector-card';
 
-        // Inicializar los contadores al abrir la página
-        actualizarContadorCreditos();
-        actualizarProgresoSemestres();
+                let secElegida = seccionesElegidas[codCursando];
+                if (seccionesRamo.length > 0 && !seccionesRamo.some(s => s.seccion === secElegida)) {
+                    secElegida = seccionesRamo[0].seccion;
+                    seccionesElegidas[codCursando] = secElegida;
+                    guardarStorage('seccionesElegidas', seccionesElegidas);
+                }
 
-        function resaltarConexiones(codigoSeleccionado) {
-            contenedor.classList.add('activa');
-            Object.values(ramosDOM).forEach(el => el.classList.remove('seleccionado', 'abre'));
+                let opcionesHTML = '';
+                if (seccionesRamo.length > 0) {
+                    opcionesHTML = seccionesRamo.map(s => `
+                        <option value="${s.seccion}" ${s.seccion === secElegida ? 'selected' : ''}>
+                            Sec. ${s.seccion} — ${s.docente} (${s.bloques.length} blq.)
+                        </option>
+                    `).join('');
+                } else {
+                    opcionesHTML = `<option value="">Sin datos en el CSV cargado</option>`;
+                }
 
-            if (ramosDOM[codigoSeleccionado]) ramosDOM[codigoSeleccionado].classList.add('seleccionado');
+                card.innerHTML = `
+                    <div class="selector-card-top">
+                        <span class="selector-codigo tabular">${ramoObj.codigo}</span>
+                        <span class="selector-nombre" title="${ramoObj.nombre}">${ramoObj.nombre}</span>
+                    </div>
+                    <select class="selector-select" data-codigo="${codCursando}" aria-label="Elegir sección para ${ramoObj.nombre}">
+                        ${opcionesHTML}
+                    </select>
+                `;
+                contSelectores.appendChild(card);
 
-            ramosData.forEach(ramo => {
-                const requisitosLimpios = ramo.requisitos.map(req => limpiarCodigo(req));
-                if (requisitosLimpios.includes(codigoSeleccionado)) {
-                    const ramoQueSeAbre = limpiarCodigo(ramo.codigo);
-                    if (ramosDOM[ramoQueSeAbre]) ramosDOM[ramoQueSeAbre].classList.add('abre');
+                // Agregar bloques de la sección seleccionada a la grilla
+                const infoSeccion = seccionesRamo.find(s => s.seccion === secElegida);
+                if (infoSeccion) {
+                    infoSeccion.bloques.forEach(b => {
+                        if (bloquesActivosPorDia[b.dia]) {
+                            bloquesActivosPorDia[b.dia].push({
+                                codigo: ramoObj.codigo,
+                                nombre: ramoObj.nombre,
+                                seccion: infoSeccion.seccion,
+                                docente: infoSeccion.docente,
+                                ...b,
+                                minInicio: aMinutos(b.inicio),
+                                minFin: aMinutos(b.fin),
+                                conflictoCon: []
+                            });
+                        }
+                    });
                 }
             });
+
+            // Detectar topes de horario y ordenar cronológicamente por día
+            const conflictosDetectados = [];
+            Object.entries(bloquesActivosPorDia).forEach(([dia, lista]) => {
+                lista.sort((a, b) => a.minInicio - b.minInicio);
+
+                for (let i = 0; i < lista.length; i++) {
+                    for (let j = i + 1; j < lista.length; j++) {
+                        const A = lista[i];
+                        const B = lista[j];
+                        if (A.minInicio < B.minFin && B.minInicio < A.minFin) {
+                            A.conflictoCon.push(B.codigo);
+                            B.conflictoCon.push(A.codigo);
+                            conflictosDetectados.push(`${dia}: ${A.codigo} (Sec. ${A.seccion}) choca con ${B.codigo} (Sec. ${B.seccion}) entre ${B.inicio} y ${Math.min(A. minFin, B.minFin) === A.minFin ? A.fin : B.fin}`);
+                        }
+                    }
+                }
+
+                const contDia = document.getElementById(`grid-${dia}`);
+                const countDia = document.getElementById(`count-${dia}`);
+                countDia.textContent = lista.length > 0 ? `${lista.length} blq.` : '';
+
+                if (lista.length === 0) {
+                    contDia.innerHTML = `<div style="color: var(--text-muted); font-size: 0.75rem; text-align: center; margin-top: 1.5rem;">Libre</div>`;
+                } else {
+                    contDia.innerHTML = lista.map(b => `
+                        <div class="bloque-clase ${b.conflictoCon.length > 0 ? 'conflicto' : ''}">
+                            <div class="b-top tabular">
+                                <span>${b.codigo} · Sec. ${b.seccion}</span>
+                                ${b.conflictoCon.length > 0 ? '<span>⚠️ TOPE</span>' : ''}
+                            </div>
+                            <div class="b-nombre">${b.nombre}</div>
+                            <div class="b-hora tabular">🕒 ${b.inicio} - ${b.fin}</div>
+                            <div class="b-meta">👤 ${b.docente}</div>
+                            ${b.sala ? `<div class="b-meta">📍 ${b.sala}</div>` : ''}
+                        </div>
+                    `).join('');
+                }
+            });
+
+            if (conflictosDetectados.length > 0) {
+                alertaTopes.style.display = 'block';
+                alertaTopes.innerHTML = `<b>⚠️ Tope de horario detectado (${conflictosDetectados.length}):</b><br>` + conflictosDetectados.join('<br>');
+            }
         }
 
-        document.body.addEventListener('click', () => {
-            contenedor.classList.remove('activa');
-            Object.values(ramosDOM).forEach(el => el.classList.remove('seleccionado', 'abre'));
+        // 7. EVENTOS E INTERACCIONES DE USUARIO
+        document.getElementById('input-excel').addEventListener('change', (e) => {
+            const archivo = e.target.files[0];
+            if (!archivo) return;
+
+            const esCSV = archivo.name.toLowerCase().endsWith('.csv');
+            const lector = new FileReader();
+
+            lector.onload = function(ev) {
+                try {
+                    const buffer = ev.target.result;
+                    let matriz = [];
+
+                    if (esCSV) {
+                        // Decodificación con fallback automático a Windows-1252 para tildes de Excel en español
+                        let texto = new TextDecoder('utf-8').decode(buffer);
+                        if (texto.includes('\uFFFD')) {
+                            texto = new TextDecoder('windows-1252').decode(buffer);
+                        }
+                        matriz = parsearTextoCSV(texto);
+                    } else {
+                        const data = new Uint8Array(buffer);
+                        const wb = XLSX.read(data, { type: 'array' });
+                        const hoja = wb.Sheets[wb.SheetNames[0]];
+                        matriz = XLSX.utils.sheet_to_json(hoja, { header: 1, defval: '' });
+                    }
+
+                    ofertaHoraria = extraerOfertaDesdeMatriz(matriz);
+                    nombreArchivoGuardado = archivo.name;
+                    guardarStorage('ofertaHorariaUV', ofertaHoraria);
+                    localStorage.setItem('nombreArchivoUV', nombreArchivoGuardado);
+                    renderizarPanelHorario();
+                } catch (err) {
+                    alert('No se pudo procesar el archivo. Verifica que sea un CSV o Excel válido.');
+                    console.error(err);
+                }
+            };
+            lector.readAsArrayBuffer(archivo);
         });
 
+        document.getElementById('btn-borrar-csv').addEventListener('click', () => {
+            ofertaHoraria = {};
+            nombreArchivoGuardado = '';
+            localStorage.removeItem('ofertaHorariaUV');
+            localStorage.removeItem('nombreArchivoUV');
+            document.getElementById('input-excel').value = '';
+            renderizarPanelHorario();
+        });
+
+        document.getElementById('selectores-secciones').addEventListener('change', (e) => {
+            if (e.target.matches('.selector-select')) {
+                const cod = e.target.dataset.codigo;
+                seccionesElegidas[cod] = e.target.value;
+                guardarStorage('seccionesElegidas', seccionesElegidas);
+                renderizarPanelHorario();
+            }
+        });
+
+        // Delegación de eventos en la malla
+        contenedorMalla.addEventListener('click', (e) => {
+            const btnSemestre = e.target.closest('.semestre-header');
+            if (btnSemestre) {
+                e.stopPropagation();
+                const num = parseInt(btnSemestre.dataset.sem, 10);
+                const col = document.getElementById(`semestre-${num}`);
+                const estaColapsado = col.classList.toggle('colapsado');
+                btnSemestre.setAttribute('aria-expanded', !estaColapsado);
+                if (estaColapsado) {
+                    if (!semestresColapsados.includes(num)) semestresColapsados.push(num);
+                } else {
+                    semestresColapsados = semestresColapsados.filter(s => s !== num);
+                }
+                guardarStorage('semestresColapsados', semestresColapsados);
+                return;
+            }
+
+            const btnEstado = e.target.closest('[data-action="toggle-estado"]');
+            if (btnEstado) {
+                e.stopPropagation();
+                ciclarEstadoRamo(btnEstado.dataset.codigo);
+                return;
+            }
+
+            const cardRamo = e.target.closest('.ramo');
+            if (cardRamo) {
+                e.stopPropagation();
+                resaltarConexiones(cardRamo.dataset.codigo);
+            }
+        });
+
+        contenedorMalla.addEventListener('contextmenu', (e) => {
+            const cardRamo = e.target.closest('.ramo');
+            if (cardRamo) {
+                e.preventDefault();
+                ciclarEstadoRamo(cardRamo.dataset.codigo);
+            }
+        });
+
+        document.body.addEventListener('click', () => {
+            contenedorMalla.classList.remove('activa');
+            Object.values(ramosDOM).forEach(el => el.classList.remove('seleccionado', 'abre', 'es-requisito'));
+        });
+
+        // Buscador en tiempo real
+        document.getElementById('buscador-ramo').addEventListener('input', (e) => {
+            const q = normalizarTexto(e.target.value);
+            ramosData.forEach(ramo => {
+                const cod = limpiarCodigo(ramo.codigo);
+                const card = ramosDOM[cod];
+                if (!card) return;
+                const coincide = !q || normalizarTexto(ramo.codigo).includes(q) || normalizarTexto(ramo.nombre).includes(q);
+                card.style.display = coincide ? 'flex' : 'none';
+            });
+        });
+
+        // Botón para ocultar todos los semestres ya completados
+        document.getElementById('btn-colapsar-aprobados').addEventListener('click', () => {
+            const maxSemestre = Math.max(...ramosData.map(r => r.semestre));
+            for (let i = 1; i <= maxSemestre; i++) {
+                const delSem = ramosData.filter(r => r.semestre === i);
+                const completo = delSem.length > 0 && delSem.every(r => ramosAprobados.includes(limpiarCodigo(r.codigo)));
+                const col = document.getElementById(`semestre-${i}`);
+                if (completo && col) {
+                    col.classList.add('colapsado');
+                    if (!semestresColapsados.includes(i)) semestresColapsados.push(i);
+                }
+            }
+            guardarStorage('semestresColapsados', semestresColapsados);
+        });
+
+        // Botón reiniciar
+        document.getElementById('btn-reiniciar').addEventListener('click', () => {
+            if (confirm('¿Seguro que quieres borrar tus ramos marcados como Pasados y Cursando?')) {
+                ramosAprobados = [];
+                ramosCursando = [];
+                guardarStorage('ramosAprobados', []);
+                guardarStorage('ramosCursando', []);
+                sincronizarUI();
+            }
+        });
+
+        // 8. AUTO-TEST QUIRÚRGICO DEL PARSER (Verifica formato real de Oferta Académica UV)
+        function ejecutarTestParserUV() {
+            const csvMuestraUV = [
+                ";OFERTA ACADÉMICA PLAN COMÚN Y ASIGNATURAS COMUNES CURSOS SUPERIORES FACING 2S 2026;;;;;;;;;",
+                ";0;;;;;;;;;",
+                ";Carrera / Plan;Nombre asignatura;Sección;Nombre Docente;Día/Hora (1);Sala (1);Día/Hora (2);Sala (2);Día/Hora (3);Sala (3)",
+                ";Coord. Plan Común;MAT111 Fundamentos de Matemáticas;1;Silfrido Gómez;Ma 08:30 - 10:00;Sala 103, Ed. General Cruz 222 (FACING);Ma 10:15 - 11:45;Sala 103, Ed. General Cruz 222 (FACING);Ju 08:30 - 10:00;Sala 103, Ed. General Cruz 222 (FACING)",
+                ";Coord. Plan Común;MAT111 Fundamentos de Matemáticas (Coordinación asignatura);100;Silfrido Gómez;-;;-;;-;",
+                ";Coord. Plan Común;CFG111 Desarrollo Personal;1;Felipe Otaiza;Lu 08:30 - 10:00;Sala 204, Ed. General Cruz 222 (Ex-Hucke);Mi 08:30 - 10:00;Sala 204, Ed. General Cruz 222 (Ex-Hucke);;"
+            ].join("\n");
+
+            const matriz = parsearTextoCSV(csvMuestraUV);
+            const resultado = extraerOfertaDesdeMatriz(matriz);
+            const okMat = resultado["MAT111"] && resultado["MAT111"].length === 1 && resultado["MAT111"][0].bloques.length === 3;
+            const okCfg = resultado["CFG111"] && resultado["CFG111"][0].bloques[0].sala.includes("Ex-Hucke");
+            if (!okMat || !okCfg) {
+                console.error("❌ Falló el auto-test del parser CSV UV:", resultado);
+            } else {
+                console.info("✅ Auto-test del parser CSV UV superado correctamente.");
+            }
+        }
+
+        // Inicialización
+        renderizarLeyenda();
+        construirMalla();
+        ejecutarTestParserUV();
     </script>
 </body>
 </html>
